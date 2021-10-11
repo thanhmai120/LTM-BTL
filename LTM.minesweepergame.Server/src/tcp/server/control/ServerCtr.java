@@ -165,9 +165,7 @@ public class ServerCtr {
                 while(true) {
                     ObjectInputStream ois = new ObjectInputStream(mySocket.getInputStream());
                     Object o = ois.readObject();
-                    view.showMessage("data receive");
                     if(o instanceof ObjectWrapper){
-                        view.showMessage("objectwrapper receive");
                         ObjectWrapper data = (ObjectWrapper)o;
                         switch(data.getPerformative()) {
                         case ObjectWrapper.LOGIN_USER:
@@ -220,7 +218,6 @@ public class ServerCtr {
                             }
                             break;
                         case ObjectWrapper.CHALLENGE_PLAYER:
-                            view.showMessage("challenge receive");
                             Challenge challenge = (Challenge)data.getData();
                             // insert to list challenge && send the ID to player
                             listChallenge.add(challenge);
