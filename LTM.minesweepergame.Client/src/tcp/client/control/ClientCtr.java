@@ -17,6 +17,7 @@ import tcp.client.view.FriendRankFrm;
 import tcp.client.view.GameFrm;
 import tcp.client.view.PlayerRankFrm;
 import tcp.client.view.PlayerDetailFrm;
+import tcp.client.view.PlayerTournamentFrm;
 import tcp.client.view.RegisterFrm;
  
  
@@ -219,7 +220,10 @@ public class ClientCtr {
                                 case ObjectWrapper.REPLY_GET_LIST_FRIEND:
                                     FriendRankFrm frv = (FriendRankFrm)fto.getData();
                                     frv.receivedDataProcessing(data);
-                                    view.showMessage("friends number: "+ ((ArrayList<PlayerRank>)data.getData()).size());
+                                    break;
+                                case ObjectWrapper.REPLY_GET_LIST_PLAYER_TOURNAMENT:
+                                    PlayerTournamentFrm ptv = (PlayerTournamentFrm)fto.getData();
+                                    ptv.receivedDataProcessing(data);
                                     break;
                                 }
                                 break;

@@ -12,6 +12,7 @@ import java.sql.Time;
 import java.util.List;
 import jdbc.dao.GameDAO;
 import jdbc.dao.PlayerRankDAO;
+import jdbc.dao.TournamentPlayerDAO;
 import jdbc.dao.UserDAO;
 import model.Challenge;
 import model.Game;
@@ -21,6 +22,7 @@ import model.ObjectWrapper;
 import model.PlayerRank;
 import model.PlayerStat;
 import model.Square;
+import model.TournamentPlayer;
 import model.User;
 import tcp.server.view.ServerMainFrm;
  
@@ -386,6 +388,11 @@ public class ServerCtr {
                                 myChallenge = null;
                             }
                             break;
+                        case ObjectWrapper.GET_LIST_PLAYER_TOURNAMENT:
+                            if(stat != null){
+                                List<TournamentPlayer> tpl = (new TournamentPlayerDAO()).getTournamentPlayersOfPlayer(stat.getID());
+                                sendData(new ObjectWrapper(ObjectWrapper.REPLY_GET_LIST_PLAYER_TOURNAMENT, tpl));
+                            }
                         }
  
                     }

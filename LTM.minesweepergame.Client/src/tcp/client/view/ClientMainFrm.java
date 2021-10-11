@@ -163,8 +163,6 @@ public class ClientMainFrm extends JFrame implements ActionListener{
             }
         }else if(ae.getSource() instanceof JMenuItem) {
             JMenuItem mni = (JMenuItem)ae.getSource();
-            
-            
             if(mni.equals(mniLogin)) {// login function
                 for(ObjectWrapper func: myControl.getActiveFunction())
                     if(func.getData() instanceof LoginFrm) {
@@ -200,6 +198,15 @@ public class ClientMainFrm extends JFrame implements ActionListener{
                     }
                 FriendRankFrm frv = new FriendRankFrm(myControl);
                 frv.setVisible(true);
+            }
+            if(mni.equals(mniTournament)) {
+                for(ObjectWrapper func: myControl.getActiveFunction())
+                    if(func.getData() instanceof PlayerTournamentFrm) {
+                        ((PlayerTournamentFrm)func.getData()).setVisible(true);
+                        return;
+                    }
+                PlayerTournamentFrm ptv = new PlayerTournamentFrm(myControl);
+                ptv.setVisible(true);
             }
         }
     }

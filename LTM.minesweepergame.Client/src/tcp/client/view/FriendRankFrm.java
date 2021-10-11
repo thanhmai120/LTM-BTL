@@ -29,7 +29,7 @@ public class FriendRankFrm extends JFrame implements ActionListener{
     private ArrayList<PlayerRank> listFriendRank;
     private JTable tblResult;
     private ClientCtr mySocket;
-     
+     private JButton btnReload;
     public FriendRankFrm(ClientCtr socket){
         super("Your Friends");
         mySocket = socket;
@@ -39,11 +39,20 @@ public class FriendRankFrm extends JFrame implements ActionListener{
         pnMain.setSize(this.getSize().width-5, this.getSize().height-20);       
         pnMain.setLayout(new BoxLayout(pnMain,BoxLayout.Y_AXIS));
         pnMain.add(Box.createRigidArea(new Dimension(0,10)));
-         
         JLabel lblHome = new JLabel("Your Friends");
         lblHome.setAlignmentX(Component.CENTER_ALIGNMENT);  
         lblHome.setFont (lblHome.getFont ().deriveFont (20.0f));
         pnMain.add(lblHome);
+        pnMain.add(Box.createRigidArea(new Dimension(0,10)));
+         
+        JPanel pn1 = new JPanel();
+        pn1.setLayout(new BoxLayout(pn1,BoxLayout.X_AXIS));
+        pn1.setSize(this.getSize().width-5, 20);
+        pnMain.add(Box.createRigidArea(new Dimension(0,10)));
+        btnReload = new JButton("Reload rank");
+        btnReload.addActionListener(this);
+        pn1.add(btnReload);
+        pnMain.add(pn1);
         pnMain.add(Box.createRigidArea(new Dimension(0,10)));
  
         JPanel pn2 = new JPanel();
@@ -92,6 +101,9 @@ public class FriendRankFrm extends JFrame implements ActionListener{
     public void actionPerformed(ActionEvent e) {
         // TODO Auto-generated method stub
         JButton btnClicked = (JButton)e.getSource();
+        if(btnClicked == btnReload){
+            mySocket.sendData(new ObjectWrapper(ObjectWrapper.GET_LIST_FRIEND, null));
+        }
         
     }
      

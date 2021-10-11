@@ -21,8 +21,8 @@ public class ObjectWrapper  implements Serializable{
     public static final int SERVER_UPDATE_GAME_STAT = 15;
     public static final int GET_LIST_FRIEND = 16;
     public static final int REPLY_GET_LIST_FRIEND = 17;
-    public static final int GET_LIST_TOURNAMENT = 18;
-    public static final int REPLY_GET_LIST_TOURNAMENT = 19;
+    public static final int GET_LIST_PLAYER_TOURNAMENT = 18;
+    public static final int REPLY_GET_LIST_PLAYER_TOURNAMENT = 19;
     public static final int GET_LIST_PLAYER_RANK = 20;
     public static final int REPLY_GET_LIST_PLAYER_RANK = 21;
     
