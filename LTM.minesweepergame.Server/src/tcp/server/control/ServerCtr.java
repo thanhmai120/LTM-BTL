@@ -220,6 +220,7 @@ public class ServerCtr {
                             }
                             break;
                         case ObjectWrapper.CHALLENGE_PLAYER:
+                            view.showMessage("Challenge come");
                             Challenge challenge = (Challenge)data.getData();
                             // insert to list challenge && send the ID to player
                             listChallenge.add(challenge);
@@ -240,6 +241,7 @@ public class ServerCtr {
                                         if(player.stat.isFree()){
                                             player.sendData(
                                                 new ObjectWrapper(ObjectWrapper.SERVER_INFORM_CHALLENGE,challenge));
+                                                view.showMessage("Challenge sent");
                                         }
                                         else{
                                             // to Player is in game , inform player challenge
@@ -306,11 +308,11 @@ public class ServerCtr {
                                                         player.sendData(
                                                         new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, g));   
                                                     }
-                                                    if(!player.stat.isFree() && stat.isFree()){
+                                                    else if(!player.stat.isFree() && stat.isFree()){
                                                         //reply answer challenge
                                                         sendData(new ObjectWrapper(ObjectWrapper.SERVER_REPLY_ANSWER,"busy"));
                                                     }
-                                                    if(player.stat.isFree() && !stat.isFree()){
+                                                    else if(player.stat.isFree() && !stat.isFree()){
                                                         //do smnt
                                                         player.sendData(new ObjectWrapper(ObjectWrapper.REPLY_CHALLENGE_PLAYER,"busy"));
                                                     }
@@ -393,6 +395,7 @@ public class ServerCtr {
                                 List<TournamentPlayer> tpl = (new TournamentPlayerDAO()).getTournamentPlayersOfPlayer(stat.getID());
                                 sendData(new ObjectWrapper(ObjectWrapper.REPLY_GET_LIST_PLAYER_TOURNAMENT, tpl));
                             }
+                            break;
                         }
  
                     }

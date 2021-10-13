@@ -5,6 +5,7 @@
  */
 
 package jdbc.dao;
+import java.util.ArrayList;
 import java.util.List;
 import model.TournamentPlayer;
 import org.hibernate.query.Query;
@@ -33,7 +34,12 @@ public class TournamentPlayerDAO extends DAO{
     public List<TournamentPlayer> getTournamentPlayersOfPlayer(int playerID){
         Query q = session.createQuery("SELECT p FROM TournamentPlayer p WHERE p.player.ID = :playerID");
         q.setParameter("playerID", playerID);
-        List<TournamentPlayer> result = q.list();
+        List<TournamentPlayer> result = new ArrayList<>();
+        try{
+        result = q.list();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         return result;
     }
 }

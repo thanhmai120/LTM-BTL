@@ -7,7 +7,7 @@
 package model;
 
 import java.io.Serializable;
-import java.sql.Time;
+import java.sql.Date;
 import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -17,7 +17,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 /**
@@ -35,10 +34,10 @@ public class Tournament implements Serializable {
     private String trm_name;
     
     @Column(name = "time_begin")
-    private Time time_begin;
+    private Date time_begin;
     
     @Column(name = "time_end")
-    private Time time_end;
+    private Date time_end;
     
     @Column(name = "description")
     private String description;
@@ -72,19 +71,19 @@ public class Tournament implements Serializable {
         this.trm_name = trm_name;
     }
 
-    public Time getTime_begin() {
+    public Date getTime_begin() {
         return time_begin;
     }
 
-    public void setTime_begin(Time time_begin) {
+    public void setTime_begin(Date time_begin) {
         this.time_begin = time_begin;
     }
 
-    public Time getTime_end() {
+    public Date getTime_end() {
         return time_end;
     }
 
-    public void setTime_end(Time time_end) {
+    public void setTime_end(Date time_end) {
         this.time_end = time_end;
     }
 

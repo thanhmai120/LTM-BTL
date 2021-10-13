@@ -11,12 +11,14 @@ import model.IPAddress;
 import model.ObjectWrapper;
 import model.PlayerRank;
 import model.User;
+import tcp.client.view.ChallengeFrm;
 import tcp.client.view.LoginFrm;
 import tcp.client.view.ClientMainFrm;
 import tcp.client.view.FriendRankFrm;
 import tcp.client.view.GameFrm;
 import tcp.client.view.PlayerRankFrm;
 import tcp.client.view.PlayerDetailFrm;
+import tcp.client.view.PlayerHomeFrm;
 import tcp.client.view.PlayerTournamentFrm;
 import tcp.client.view.RegisterFrm;
  
@@ -40,6 +42,10 @@ public class ClientCtr {
         this.view = view;
         this.serverAddress = serverAddr;
         myFunction = new ArrayList<ObjectWrapper>();
+    }
+
+    public ClientMainFrm getView() {
+        return view;
     }
 
     public User getUser() {
@@ -115,6 +121,8 @@ public class ClientCtr {
         this.view.onLoginSuccessfully();
         this.view.showMessage("User Login: "+user.getUsername()+"\nHello "+user.getFullname());
         myFunction.clear();
+        ChallengeFrm cv = new ChallengeFrm(this);
+        PlayerHomeFrm hv = new PlayerHomeFrm(this);
     }
  
  
@@ -130,69 +138,88 @@ public class ClientCtr {
                 ObjectInputStream ois = new ObjectInputStream(mySocket.getInputStream());
                 Object obj = ois.readObject();
                 if(obj instanceof ObjectWrapper) {
+                    
                     ObjectWrapper data = (ObjectWrapper)obj;
+                    for(ObjectWrapper func: myFunction)
+                        if(func.getData() instanceof PlayerHomeFrm) {
+                            ((PlayerHomeFrm)func.getData()).receivedDataProcessing(data);
+                            break;
+                    }
                     if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_CLIENT_NUMBER)
                         view.showMessage("Number of client connecting to the server: " + data.getData());
-                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_CHALLENGE){
-                        Challenge challenge = (Challenge)data.getData();
-                        String[] options = {"accept","refuse"};
-                        int result = JOptionPane.showOptionDialog(view
-                                , "Challenge from "+challenge.getFromPlayer().getUsername()
-                                , "New Challenge", JOptionPane.YES_NO_OPTION
-                                , JOptionPane.QUESTION_MESSAGE, null,options, null);
-                        if(result == JOptionPane.YES_OPTION) {
-                            challenge.setAccepted(true);
-                            sendData(new ObjectWrapper(ObjectWrapper.ANSWER_CHALLENGE, challenge));
-                        }else{
-                            challenge.setAccepted(false);
-                            sendData(new ObjectWrapper(ObjectWrapper.ANSWER_CHALLENGE, challenge));
-                        }
-                    }
-                    else if(data.getPerformative() == ObjectWrapper.SERVER_REPLY_ANSWER){
-                        if(data.getData() instanceof String) {
-                            if(data.getData().equals("expired")){
-                                JOptionPane.showMessageDialog(view, "Challenge is expired !");
-                            }
-                            if(data.getData().equals("busy")){
-                                JOptionPane.showMessageDialog(view, "Player challenging is busy !");
-                            }
-                            if(data.getData().equals("offline")){
-                                JOptionPane.showMessageDialog(view, "Player challenging is offline !");
-                            }
-                            if(data.getData().equals("game start")){
-                                // ksdjfiObjectWrapper existed = null;
-                                
-                                JOptionPane.showMessageDialog(view, "Game start !");
-                                new GameFrm(view.getMyControl()).setVisible(true);
-                            }
-                        }
-                    }
-                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_USER_IN){
-                        for(ObjectWrapper fto: myFunction){
-                            if(fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_FRIEND || 
-                                    fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK){
-                                if(fto.getData() instanceof FriendRankFrm){
-                                    ((FriendRankFrm)fto.getData()).informPlayerOnline(data);
-                                }
-                                if(fto.getData() instanceof PlayerRankFrm){
-                                    ((PlayerRankFrm)fto.getData()).informPlayerOnline(data);
-                                }
-                            }
-                        }
-                    }
-                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_USER_OUT){
-                        for(ObjectWrapper fto: myFunction){
-                            if(fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_FRIEND || 
-                                    fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK){
-                                if(fto.getData() instanceof FriendRankFrm){
-                                    ((FriendRankFrm)fto.getData()).informPlayerOffline(data);
-                                }
-                                if(fto.getData() instanceof PlayerRankFrm){
-                                    ((PlayerRankFrm)fto.getData()).informPlayerOffline(data);
-                                }
-                            }
-                        }
-                    }
+//                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_CHALLENGE){
+////                        ObjectWrapper existed = null;
+////                        for(ObjectWrapper fto: myFunction)
+////                            if(fto.getPerformative() == ObjectWrapper.SERVER_INFORM_CHALLENGE) {
+////                                existed = fto;
+////                                ChallengeFrm cv = (ChallengeFrm)fto.getData();
+////                                cv.receivedDataProcessing(data);
+////                                cv.setVisible(true);
+////                                break;
+////                            }
+////                        if(existed == null){
+////                            ChallengeFrm cv = new ChallengeFrm(view.getMyControl());
+////                            cv.receivedDataProcessing(data);
+////                        }
+//                        Challenge challenge = (Challenge)data.getData();
+//                        String[] options = {"accept","refuse"};
+//                        int result = JOptionPane.showOptionDialog(view
+//                                , "Challenge from "+challenge.getFromPlayer().getUsername()
+//                                , "New Challenge", JOptionPane.YES_NO_OPTION
+//                                , JOptionPane.QUESTION_MESSAGE, null,options, null);
+//                        if(result == JOptionPane.YES_OPTION) {
+//                            challenge.setAccepted(true);
+//                            sendData(new ObjectWrapper(ObjectWrapper.ANSWER_CHALLENGE, challenge));
+//                        }else{
+//                            challenge.setAccepted(false);
+//                            sendData(new ObjectWrapper(ObjectWrapper.ANSWER_CHALLENGE, challenge));
+//                        }
+//                    }
+//                    else if(data.getPerformative() == ObjectWrapper.SERVER_REPLY_ANSWER){
+//                        if(data.getData() instanceof String) {
+//                            if(data.getData().equals("expired")){
+//                                JOptionPane.showMessageDialog(view, "Challenge is expired !");
+//                            }
+//                            if(data.getData().equals("busy")){
+//                                JOptionPane.showMessageDialog(view, "Player challenging is busy !");
+//                            }
+//                            if(data.getData().equals("offline")){
+//                                JOptionPane.showMessageDialog(view, "Player challenging is offline !");
+//                            }
+//                            if(data.getData().equals("game start")){
+//                                // ksdjfiObjectWrapper existed = null;
+//                                
+//                                JOptionPane.showMessageDialog(view, "Game start !");
+//                                new GameFrm(view.getMyControl()).setVisible(true);
+//                            }
+//                        }
+//                    }
+//                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_USER_IN){
+//                        for(ObjectWrapper fto: myFunction){
+//                            if(fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_FRIEND || 
+//                                    fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK){
+//                                if(fto.getData() instanceof FriendRankFrm){
+//                                    ((FriendRankFrm)fto.getData()).informPlayerOnline(data);
+//                                }
+//                                if(fto.getData() instanceof PlayerRankFrm){
+//                                    ((PlayerRankFrm)fto.getData()).informPlayerOnline(data);
+//                                }
+//                            }
+//                        }
+//                    }
+//                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_USER_OUT){
+//                        for(ObjectWrapper fto: myFunction){
+//                            if(fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_FRIEND || 
+//                                    fto.getPerformative() == ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK){
+//                                if(fto.getData() instanceof FriendRankFrm){
+//                                    ((FriendRankFrm)fto.getData()).informPlayerOffline(data);
+//                                }
+//                                if(fto.getData() instanceof PlayerRankFrm){
+//                                    ((PlayerRankFrm)fto.getData()).informPlayerOffline(data);
+//                                }
+//                            }
+//                        }
+//                    }
                     else {
                         for(ObjectWrapper fto: myFunction)
                             if(fto.getPerformative() == data.getPerformative()) {
@@ -205,10 +232,10 @@ public class ClientCtr {
                                     RegisterFrm rv = (RegisterFrm)fto.getData();
                                     rv.receivedDataProcessing(data);
                                     break;
-                                case ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK:
-                                    PlayerRankFrm prv = (PlayerRankFrm)fto.getData();
-                                    prv.receivedDataProcessing(data);
-                                    break;
+//                                case ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK:
+//                                    PlayerRankFrm prv = (PlayerRankFrm)fto.getData();
+//                                    prv.receivedDataProcessing(data);
+//                                    break;
                                 case ObjectWrapper.REPLY_CHALLENGE_PLAYER:
                                     PlayerDetailFrm pdv = (PlayerDetailFrm)fto.getData();
                                     pdv.receivedDataProcessing(data);
@@ -217,18 +244,22 @@ public class ClientCtr {
                                     GameFrm gv = (GameFrm)fto.getData();
                                     gv.receivedDataProcessing(data);
                                     break;
-                                case ObjectWrapper.REPLY_GET_LIST_FRIEND:
-                                    FriendRankFrm frv = (FriendRankFrm)fto.getData();
-                                    frv.receivedDataProcessing(data);
-                                    break;
-                                case ObjectWrapper.REPLY_GET_LIST_PLAYER_TOURNAMENT:
-                                    PlayerTournamentFrm ptv = (PlayerTournamentFrm)fto.getData();
-                                    ptv.receivedDataProcessing(data);
-                                    break;
+//                                case ObjectWrapper.REPLY_GET_LIST_FRIEND:
+//                                    FriendRankFrm frv = (FriendRankFrm)fto.getData();
+//                                    frv.receivedDataProcessing(data);
+//                                    break;
+//                                case ObjectWrapper.REPLY_GET_LIST_PLAYER_TOURNAMENT:
+//                                    PlayerTournamentFrm ptv = (PlayerTournamentFrm)fto.getData();
+//                                    ptv.receivedDataProcessing(data);
+//                                    break;
+//                                case ObjectWrapper.SERVER_INFORM_CHALLENGE:
+//                                    ChallengeFrm cv = (ChallengeFrm)fto.getData();
+//                                    cv.receivedDataProcessing(data);
+//                                    break;
                                 }
                                 break;
                             }
-                        //view.showMessage("Received an object: " + data.getPerformative());
+//                        //view.showMessage("Received an object: " + data.getPerformative());
                     }
                 }
                 }

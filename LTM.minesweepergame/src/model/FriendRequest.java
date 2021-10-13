@@ -47,4 +47,54 @@ public class FriendRequest implements Serializable {
     @ManyToOne
     @JoinColumn(name="toplayeruserid", nullable=false)
     private Player toPlayer;
+
+    public int getID() {
+        return ID;
+    }
+
+    public void setID(int ID) {
+        this.ID = ID;
+    }
+
+    public Time getTime_request() {
+        return time_request;
+    }
+
+    public void setTime_request(Time time_request) {
+        this.time_request = time_request;
+    }
+
+    public Time getTime_reply() {
+        return time_reply;
+    }
+
+    public void setTime_reply(Time time_reply) {
+        this.time_reply = time_reply;
+    }
+
+    public boolean isAccepted() {
+        return accepted;
+    }
+
+    public void setAccepted(boolean accepted) {
+        this.accepted = accepted;
+    }
+
+    public Player getFromPlayer() {
+        return fromPlayer;
+    }
+
+    public void setFromPlayer(Player fromPlayer) {
+        this.fromPlayer = fromPlayer;
+    }
+
+    public Player getToPlayer() {
+        return toPlayer;
+    }
+
+    public void setToPlayer(Player toPlayer) {
+        this.toPlayer = toPlayer;
+    }
+    
+    
 }
