@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import model.Challenge;
  
@@ -95,6 +96,9 @@ public class ClientCtr {
      
     public boolean closeConnection(){
          try {
+             
+            for(ObjectWrapper fto : myFunction)
+                ((JFrame)fto.getData()).setVisible(false);
              if(myListening != null)
                  myListening.stop();
              if(mySocket !=null) {
@@ -147,7 +151,7 @@ public class ClientCtr {
                         }
                     if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_CLIENT_NUMBER)
                         view.showMessage("Number of client connecting to the server: " + data.getData());
-                    if(data.getPerformative() == ObjectWrapper.SERVER_UPDATE_GAME_STAT) {
+                    else if(data.getPerformative() == ObjectWrapper.SERVER_UPDATE_GAME_STAT) {
                         ObjectWrapper existed = null;
                         for(ObjectWrapper fto : myFunction)
                             if(fto.getPerformative() == ObjectWrapper.SERVER_UPDATE_GAME_STAT) {
@@ -235,6 +239,22 @@ public class ClientCtr {
 //                            }
 //                        }
 //                    }
+                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_USER_IN){
+                        for(ObjectWrapper fto: myFunction){
+                            if(fto.getData() instanceof GameFrm){
+                                ((GameFrm)fto.getData()).informPlayerIn(data);
+                                break;
+                            }
+                        }
+                    }
+                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_USER_OUT){
+                        for(ObjectWrapper fto: myFunction){
+                            if(fto.getData() instanceof GameFrm){
+                                ((GameFrm)fto.getData()).informPlayerOut(data);
+                                break;
+                            }
+                        }
+                    }
                     else {
                         for(ObjectWrapper fto: myFunction)
                             if(fto.getPerformative() == data.getPerformative()) {

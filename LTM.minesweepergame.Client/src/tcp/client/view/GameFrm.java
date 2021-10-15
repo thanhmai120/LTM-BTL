@@ -23,6 +23,7 @@ import javax.swing.ImageIcon;
 import model.Game;
 import model.GamePlayer;
 import model.ObjectWrapper;
+import model.PlayerStat;
 import model.Square;
 import tcp.client.control.ClientCtr;
 
@@ -49,6 +50,7 @@ public class GameFrm extends JFrame implements ActionListener{
     private Timer timer;
     private GamePlayer you;
     private GamePlayer opponent;
+    private PlayerStat opponentStat;
     /**
     @param size determines the size of the board
     */
@@ -143,6 +145,9 @@ public class GameFrm extends JFrame implements ActionListener{
             }
             this.add(grid,BorderLayout.CENTER);
             lblMineNumb.setText("Mines: "+game.getBomb_number());
+            // create opponent stat
+            opponentStat = new PlayerStat(opponent.getPlayer());
+            opponentStat.setOnline(true);
             buttonRendered = true;
         }
         // render score
@@ -151,7 +156,7 @@ public class GameFrm extends JFrame implements ActionListener{
                 lblMyscore.setText("You: "+p.getScore());
                 lblMyscore.setForeground(Color.decode(p.getColor()));
             }else{
-                lblOpscore.setText(p.getPlayer().getUsername()+": "+p.getScore());
+                lblOpscore.setText(p.getPlayer().getUsername()+(!opponentStat.isOnline() ? " (out...)":"")+": "+p.getScore());
                 lblOpscore.setForeground(Color.decode(p.getColor()));
             }
         //render next play, time
@@ -237,6 +242,21 @@ public class GameFrm extends JFrame implements ActionListener{
         timer.purge();
         timer = new Timer();
         timer.schedule(new CountTime(), 1000);
+    }
+    public void informPlayerIn(ObjectWrapper data) {
+        if(opponent != null) {
+            int playerID = (Integer)data.getData();
+            if(opponent.getPlayer().getID() == playerID)
+                opponentStat.setOnline(true);
+        }
+    }
+    
+    public void informPlayerOut(ObjectWrapper data) {
+        if(opponent != null) {
+            int playerID = (Integer)data.getData();
+            if(opponent.getPlayer().getID() == playerID)
+                opponentStat.setOnline(false);
+        }
     }
     public static void main(String[] args) {
         new GameFrm(null);

@@ -196,6 +196,9 @@ public class ServerCtr {
                                 for(GameProcess gp : listGameProcess) 
                                     if(gp.hasGamePlayer(stat.getID())){
                                         stat.setFree(false);
+                                        if(gp.isNextPlayer(stat.getID()))
+                                            gp.updateGameStat();
+                                        break;
 //                                        sendData(new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, gp.getMyGame()));
                                     }
                                 
@@ -386,6 +389,14 @@ public class ServerCtr {
                 if(loginUser != null){
                     publicInformUserOut(loginUser.getID());
                 }
+                if(stat != null) 
+                    if(!stat.isFree()) 
+                        //update game of player
+                        for(GameProcess gp : listGameProcess)
+                            if(gp.isNextPlayer(stat.getID())){
+                                gp.updateGameStat();
+                                break;
+                            }
                 try {
                     mySocket.close();
                 }catch(Exception ex) {
@@ -402,6 +413,7 @@ public class ServerCtr {
         private Game myGame;
         private Timer timer;
         private boolean gameOver = false;
+        private boolean processingStat = false;
         public GameProcess(Game game){
             super();
             myGame = game;
@@ -434,6 +446,8 @@ public class ServerCtr {
         }
         
         public void onSquareClicked(int squareID) {
+            if(processingStat) return;
+            processingStat = true;
             // cancel timer
             if(timer != null) {
                 timer.cancel();
@@ -443,8 +457,10 @@ public class ServerCtr {
             List<GamePlayer> players = myGame.getPlayers();
             GamePlayer nextPlayer = null;
             // if square is cliked , return
-            if(squares.get(squareID-1).isIs_clicked())
+            if(squares.get(squareID-1).isIs_clicked()){
+                processingStat = false;
                 return;
+            }
             // get the player clicking
             for(GamePlayer p : players){
                 if(p.isIs_next()){
@@ -549,6 +565,11 @@ public class ServerCtr {
         }
         
         private void updateGameStat() {
+            //if timer not cancel yet, cancel
+            if(timer != null){
+                timer.cancel();
+                timer.purge();
+            }
             List<GamePlayer> players = myGame.getPlayers();
             int winScore = (int)(myGame.getBomb_number()/2);
             // check game over
@@ -575,8 +596,6 @@ public class ServerCtr {
                 }
             }
             if(gameOver){
-                timer.cancel();
-                timer.purge();
                 //save game
                 new GameDAO().saveGame(myGame);
                 // remove this from list game process
@@ -593,11 +612,13 @@ public class ServerCtr {
                         ranks = new PlayerRankDAO().getPlayerRanks();
                     socket.sendData(new ObjectWrapper(ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK, ranks));
                 }
+                processingStat = false;
                 return;
             }
             //set new timer
             timer = new Timer();
             timer.schedule(new AutomaticClick(), 10000);
+            processingStat = false;
         }
         
         private void clickARandomSquare(){
@@ -615,6 +636,13 @@ public class ServerCtr {
         public boolean hasGamePlayer(int playerID){
             for(GamePlayer p : myGame.getPlayers())
                 if(p.getPlayer().getID() == playerID)
+                    return true;
+            return false;
+        }
+        
+        public boolean isNextPlayer(int playerID) {
+            for(GamePlayer p : myGame.getPlayers())
+                if(p.getPlayer().getID() == playerID && p.isIs_next())
                     return true;
             return false;
         }
