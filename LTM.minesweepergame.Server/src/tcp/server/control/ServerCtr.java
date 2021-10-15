@@ -177,6 +177,10 @@ public class ServerCtr {
                             User user = (User)data.getData();
                             UserDAO ud = new UserDAO();
                             loginUser = ud.checkLogin(user);
+                            for(ServerProcessing client : myProcess)
+                                if(client.getStat() != null && loginUser != null
+                                        && client.getStat().getID() == loginUser.getID())
+                                    loginUser = null;
                             sendData(new ObjectWrapper(ObjectWrapper.REPLY_LOGIN_USER,loginUser));
                             if(loginUser != null) {
                                 publicInformUserIn(loginUser.getID());

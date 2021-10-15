@@ -74,7 +74,7 @@ public class LoginFrm extends JFrame implements ActionListener{
 //                        mySocket.getActiveFunction().remove(func);
                 this.dispose();
             }else {
-                JOptionPane.showMessageDialog(this, "Username or password isn't correct!");
+                JOptionPane.showMessageDialog(this, "Username / Password isn't correct, or Account have been loged in!");
             }
         }
     }

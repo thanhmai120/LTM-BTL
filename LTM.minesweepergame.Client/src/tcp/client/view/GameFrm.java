@@ -174,25 +174,30 @@ public class GameFrm extends JFrame implements ActionListener{
         timer = new Timer();
         timer.schedule(new CountTime(), 1000);
         // render square
+        Image bombicon = null;
+        try{
+            bombicon = ImageIO.read(new FileInputStream(new File("rsc/mr_bomb.png")));
+        }catch(Exception e){
+            e.printStackTrace();
+        }
         List<Square> squares = game.getSquares();
         for(Square sq : squares) {
             JButton btn = buttons[sq.getID()-1];
             if(sq.isIs_clicked()){
-                btn.setBackground(Color.decode(sq.getColor()));
                 btn.setEnabled(false);
                 if(sq.isIs_bomb()){
                     //btn.setIcon(defaultIcon);
                     //btn.setText("B");
-                    try{
-                        Image icon = ImageIO.read(new FileInputStream(new File("rsc/bomb4.ico")));
-                        btn.setIcon(new ImageIcon(icon));
-                    }catch(Exception e){
+                    if(bombicon != null) {
+                        btn.setIcon(new ImageIcon(bombicon));
+                        btn.setDisabledIcon(new ImageIcon(bombicon));
+                    }else {
                         btn.setText("B");
-                        e.printStackTrace();
                     }
                 }else{
                     btn.setText(sq.getValue()+"");
                 }
+                btn.setBackground(Color.decode(sq.getColor()));
             }
         }
         //do smt
