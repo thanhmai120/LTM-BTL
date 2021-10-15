@@ -144,9 +144,24 @@ public class ClientCtr {
                         if(func.getData() instanceof PlayerHomeFrm) {
                             ((PlayerHomeFrm)func.getData()).receivedDataProcessing(data);
                             break;
-                    }
+                        }
                     if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_CLIENT_NUMBER)
                         view.showMessage("Number of client connecting to the server: " + data.getData());
+                    if(data.getPerformative() == ObjectWrapper.SERVER_UPDATE_GAME_STAT) {
+                        ObjectWrapper existed = null;
+                        for(ObjectWrapper fto : myFunction)
+                            if(fto.getPerformative() == ObjectWrapper.SERVER_UPDATE_GAME_STAT) {
+                                existed = fto;
+                                break;
+                            }
+                        if(existed == null){
+                            existed = new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, 
+                                    new GameFrm(view.getMyControl()));
+                        }
+                        GameFrm gv = (GameFrm)(existed.getData());
+                        gv.receivedDataProcessing(data);
+                        
+                    }
 //                    else if(data.getPerformative() == ObjectWrapper.SERVER_INFORM_CHALLENGE){
 ////                        ObjectWrapper existed = null;
 ////                        for(ObjectWrapper fto: myFunction)
@@ -239,10 +254,6 @@ public class ClientCtr {
                                 case ObjectWrapper.REPLY_CHALLENGE_PLAYER:
                                     PlayerDetailFrm pdv = (PlayerDetailFrm)fto.getData();
                                     pdv.receivedDataProcessing(data);
-                                    break;
-                                case ObjectWrapper.SERVER_UPDATE_GAME_STAT:
-                                    GameFrm gv = (GameFrm)fto.getData();
-                                    gv.receivedDataProcessing(data);
                                     break;
 //                                case ObjectWrapper.REPLY_GET_LIST_FRIEND:
 //                                    FriendRankFrm frv = (FriendRankFrm)fto.getData();

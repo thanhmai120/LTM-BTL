@@ -29,7 +29,7 @@ public class ClientMainFrm extends JFrame implements ActionListener{
     private JMenu mnUser;
     private JMenu mnPlayer;
     private JMenuItem mniLogin, mniRegister;
-    private JMenuItem mniRank, mniTournament, mniFriend, mniChallenge,mniHome;
+    private JMenuItem mniRank, mniTournament, mniFriend, mniChallenge,mniHome,mniGame;
      
     private JTextField txtServerHost;
     private JTextField txtServerPort;
@@ -61,16 +61,19 @@ public class ClientMainFrm extends JFrame implements ActionListener{
         mniFriend = new JMenuItem("Friends");
         mniChallenge = new JMenuItem("Challenge");
         mniHome = new JMenuItem("Home");
+        mniGame = new JMenuItem("Game");
         mniRank.addActionListener(this);
         mniTournament.addActionListener(this);
         mniFriend.addActionListener(this);
         mniChallenge.addActionListener(this);
         mniHome.addActionListener(this);
+        mniGame.addActionListener(this);
 //        mnPlayer.add(mniRank);
 //        mnPlayer.add(mniFriend);
 //        mnPlayer.add(mniTournament);
 //        mnPlayer.add(mniChallenge);
         mnPlayer.add(mniHome);
+        mnPlayer.add(mniGame);
         mnbMain.add(mnPlayer);
         this.setJMenuBar(mnbMain);
         mniLogin.setEnabled(false);
@@ -79,6 +82,7 @@ public class ClientMainFrm extends JFrame implements ActionListener{
         mniFriend.setEnabled(false);
         mniTournament.setEnabled(false);
         mniHome.setEnabled(false);
+        mniGame.setEnabled(false);
         
         JLabel lblTitle = new JLabel("Client TCP/IP");
         lblTitle.setFont(new java.awt.Font("Dialog", 1, 20));
@@ -235,6 +239,14 @@ public class ClientMainFrm extends JFrame implements ActionListener{
                     }
                 
             }
+            if(mni.equals(mniGame)) {
+                for(ObjectWrapper func: myControl.getActiveFunction())
+                    if(func.getData() instanceof GameFrm) {
+                        ((GameFrm)func.getData()).setVisible(true);
+                        return;
+                    }
+                
+            }
         }
     }
      
@@ -258,6 +270,7 @@ public class ClientMainFrm extends JFrame implements ActionListener{
         mniChallenge.setEnabled(false);
         mniTournament.setEnabled(false);
         mniHome.setEnabled(false);
+        mniGame.setEnabled(false);
     }
     
     public void onLoginSuccessfully(){
@@ -268,6 +281,7 @@ public class ClientMainFrm extends JFrame implements ActionListener{
         mniChallenge.setEnabled(true);
         mniTournament.setEnabled(true);
         mniHome.setEnabled(true);
+        mniGame.setEnabled(true);
     }
      
     public static void main(String[] args) {

@@ -160,8 +160,6 @@ public class PlayerDetailFrm extends JFrame implements ActionListener{
             challenge = null;
         }
         if(data.getData() instanceof String && data.getData().equals("accepted")) {
-                JOptionPane.showMessageDialog(this, "Challenge accepted !");
-                new GameFrm(mySocket).setVisible(true);
                 for(ObjectWrapper func: mySocket.getActiveFunction())
                     if(func.getData().equals(this)){
                         mySocket.getActiveFunction().remove(func);

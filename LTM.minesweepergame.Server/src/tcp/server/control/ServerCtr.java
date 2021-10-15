@@ -1,5 +1,6 @@
 package tcp.server.control;
  
+import java.awt.Color;
 import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -10,6 +11,8 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.sql.Time;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import jdbc.dao.GameDAO;
 import jdbc.dao.PlayerRankDAO;
 import jdbc.dao.TournamentPlayerDAO;
@@ -32,13 +35,13 @@ public class ServerCtr {
     private ServerListening myListening;
     private ArrayList<ServerProcessing> myProcess;
     private ArrayList<Challenge> listChallenge;
-    private ArrayList<Game> listGame;
+    private ArrayList<GameProcess> listGameProcess;
     private IPAddress myAddress = new IPAddress("localhost",8888);  //default server host and port
      
     public ServerCtr(ServerMainFrm view){
         myProcess = new ArrayList<ServerProcessing>();
         listChallenge = new ArrayList<Challenge>();
-        listGame = new ArrayList<Game>();
+        listGameProcess = new ArrayList<GameProcess>();
         this.view = view;
         openServer();       
     }
@@ -174,6 +177,7 @@ public class ServerCtr {
                             User user = (User)data.getData();
                             UserDAO ud = new UserDAO();
                             loginUser = ud.checkLogin(user);
+                            sendData(new ObjectWrapper(ObjectWrapper.REPLY_LOGIN_USER,loginUser));
                             if(loginUser != null) {
                                 publicInformUserIn(loginUser.getID());
                                 for(ServerProcessing client : myProcess)
@@ -185,8 +189,13 @@ public class ServerCtr {
                                 stat = new PlayerStat(loginUser);
                                 stat.setOnline(true);
                                 stat.setFree(true);
+                                for(GameProcess gp : listGameProcess) 
+                                    if(gp.hasGamePlayer(stat.getID())){
+                                        stat.setFree(false);
+//                                        sendData(new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, gp.getMyGame()));
+                                    }
+                                
                             }
-                            sendData(new ObjectWrapper(ObjectWrapper.REPLY_LOGIN_USER,loginUser));
                             break;
                         case ObjectWrapper.REGISTER_USER:
                             user = (User)data.getData();
@@ -274,7 +283,7 @@ public class ServerCtr {
                                                     if(player.stat.isFree() && stat.isFree()){
                                                         player.stat.setFree(false);
                                                         stat.setFree(false);
-                                                        sendData(new ObjectWrapper(ObjectWrapper.SERVER_REPLY_ANSWER,"game start"));
+//                                                        sendData(new ObjectWrapper(ObjectWrapper.SERVER_REPLY_ANSWER,"game start"));
                                                         player.sendData(new ObjectWrapper(ObjectWrapper.REPLY_CHALLENGE_PLAYER
                                                                 ,(challenge.isAccepted() ? "accepted" : "refused")));
                                                         GamePlayer p1 = new GamePlayer();
@@ -285,28 +294,21 @@ public class ServerCtr {
                                                         p2.setIs_next(false);
                                                         p1.setIs_winner(false);
                                                         p2.setIs_winner(false);
-                                                        p1.setColor("blue");
-                                                        p2.setColor("red");
+                                                        p1.setColor("#FF7878");
+                                                        p2.setColor("#CAB8FF");
                                                         Game g = new Game();
                                                         g.setBomb_number(31);
-                                                        g.setWidth(8);
+                                                        g.setWidth(10);
                                                         g.setChallenge(challenge);
                                                         g.setTime_begin(new Time(new java.util.Date().getTime()));
                                                         ArrayList<GamePlayer> players = new ArrayList<>();
                                                         players.add(p1);
                                                         players.add(p2);
                                                         g.setPlayers(players);
-                                                        // set squares
-                                                        
                                                         //save game
                                                         new GameDAO().addGame(g);
                                                         // add to game  list 
-                                                        listGame.add(g);
-                                                        
-                                                        sendData(
-                                                        new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, g));
-                                                        player.sendData(
-                                                        new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, g));   
+                                                        listGameProcess.add(new GameProcess(g));  
                                                     }
                                                     else if(!player.stat.isFree() && stat.isFree()){
                                                         //reply answer challenge
@@ -330,56 +332,27 @@ public class ServerCtr {
                                 }
                                 
                             }else{
-                                for(Challenge c : listChallenge){
+                                for(Challenge c : listChallenge)
                                     if(challenge.getID() == c.getID() && !challenge.isExpired()){
                                         int fromPlayerID = c.getFromPlayer().getID();
-                                        for(ServerProcessing player : myProcess){
+                                        for(ServerProcessing player : myProcess)
                                             if(player.stat.getID() == fromPlayerID){
                                                 // send notification
-                                                player.sendData(new ObjectWrapper(ObjectWrapper.REPLY_CHALLENGE_PLAYER,challenge));
+                                                player.sendData(new ObjectWrapper(ObjectWrapper.REPLY_CHALLENGE_PLAYER
+                                                                ,(challenge.isAccepted() ? "accepted" : "refused")));
                                                 c.setExpired(true);
                                             }
-                                        }
                                     }
-                                }
                             }
                             break;
                         case ObjectWrapper.MAKE_A_MOVE:
-                            // update game
                             if(data.getData() instanceof Square){
                                 Square clicked = (Square)data.getData();
-                                for(Game g : listGame){
-                                    if(g.getID() == clicked.getGame().getID()){
-                                        //update game g
-                                        
-                                        // send to players
-                                        List<GamePlayer> players = g.getPlayers();
-                                        int p2ID = (stat.getID()==players.get(0).getPlayer().getID() ? 
-                                                players.get(1).getPlayer().getID() : players.get(0).getPlayer().getID());
-                                        boolean p2Online = false;
-                                        for(ServerProcessing player : myProcess){
-                                            if(player.stat.getID() == p2ID){
-                                                p2Online = true;
-                                                // p2 update gamestat
-                                                player.sendData(new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, g));
-                                            }
-                                        }
-                                        if(!p2Online){
-                                            //game over
-                                            for(GamePlayer player : players){
-                                                if(player.getPlayer().getID() == p2ID){
-                                                    player.setPlus_score(-1);
-                                                }else{
-                                                    player.setIs_winner(true);
-                                                    player.setPlus_score(1);
-                                                }
-                                            }
-                                            g.setTime_end(new Time(new java.util.Date().getTime()));
-                                            new GameDAO().saveGame(g);
-                                            // set players free
-                                            stat.setFree(true);
-                                        }
-                                        sendData(new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, g));
+                                for(GameProcess process : listGameProcess){
+                                    if(process.getMyGame().getID() == clicked.getGame().getID()){
+                                        //update game
+                                        process.onSquareClicked(clicked.getID());
+                                        break;
                                     }
                                 }
                             }
@@ -417,6 +390,235 @@ public class ServerCtr {
                 this.stop();
             }catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+    }
+    
+    class GameProcess{
+        private Game myGame;
+        private Timer timer;
+        private boolean gameOver = false;
+        public GameProcess(Game game){
+            super();
+            myGame = game;
+            //generate game property
+            int sqNumb = myGame.getWidth()*myGame.getWidth();
+            ArrayList<Square> squares = new ArrayList<Square>();
+            for(int i=0; i<sqNumb; i++){
+                Square sq = new Square();
+                sq.setID(i+1);
+                sq.setIs_bomb(false);
+                sq.setIs_clicked(false);
+                squares.add(sq);
+            }
+            //bomb position
+            for(int i=0; i<myGame.getBomb_number(); i++){
+                int rand = (int)(Math.random()*sqNumb) ;
+                if(squares.get(rand).isIs_bomb()){
+                    i--;
+                    continue;
+                }
+                squares.get(rand).setIs_bomb(true);
+            }
+            myGame.setSquares(squares);
+            //dbh
+            updateGameStat();
+        }
+
+        public Game getMyGame() {
+            return myGame;
+        }
+        
+        public void onSquareClicked(int squareID) {
+            // cancel timer
+            if(timer != null) {
+                timer.cancel();
+                timer.purge();
+            }
+            List<Square> squares = myGame.getSquares();
+            List<GamePlayer> players = myGame.getPlayers();
+            GamePlayer nextPlayer = null;
+            // if square is cliked , return
+            if(squares.get(squareID-1).isIs_clicked())
+                return;
+            // get the player clicking
+            for(GamePlayer p : players){
+                if(p.isIs_next()){
+                    nextPlayer = p;
+                    break;
+                }
+            }
+            //if is bomb , set to clicked , else cal
+            if(squares.get(squareID-1).isIs_bomb()){
+                squares.get(squareID-1).setIs_clicked(true);
+                squares.get(squareID -1).setColor(nextPlayer.getColor());
+                // increase the player score
+                nextPlayer.setScore(nextPlayer.getScore() +1);
+            } else {            
+                calSquareValue(squareID,nextPlayer.getColor());
+                //set turn 
+                for(GamePlayer p : players){
+                    p.setIs_next(!p.isIs_next());
+                }
+            }
+            // dong bo hoa
+            updateGameStat();
+        }
+        
+        private void calSquareValue(int squareID, String color){
+            List<Square> squares = myGame.getSquares();
+            // if square is cliked , return
+            if(squares.get(squareID-1).isIs_clicked())
+                return;
+            squares.get(squareID-1).setColor(color);
+            // set the init total = 0
+            int value = 0;
+            // set clicked
+            squares.get(squareID -1).setIs_clicked(true);
+            //find out the position of the square
+            boolean isLeftEdge = (squareID % myGame.getWidth() == 1);
+            boolean isRightEdge = (squareID % myGame.getWidth() == 0);
+            boolean isTopEdge = (squareID <= myGame.getWidth());
+            boolean isBottomEdge = (squareID > myGame.getWidth()*(myGame.getWidth()-1));
+            //check the square nearby to cal value
+            if(!isLeftEdge){
+                value += squares.get(squareID -1 -1).isIs_bomb() ? 1 : 0;
+            }
+            if(!isRightEdge){
+                value += squares.get(squareID -1 +1).isIs_bomb() ? 1 : 0;
+            }
+            if(!isTopEdge) {
+                value += squares.get(squareID -1 - myGame.getWidth()).isIs_bomb() ? 1 : 0;
+            }
+            if(!isBottomEdge) {
+                value += squares.get(squareID -1 + myGame.getWidth()).isIs_bomb() ? 1 : 0;
+            }
+            if(!isTopEdge && !isLeftEdge){
+                // goc trai tren
+                value += squares.get(squareID -2 - myGame.getWidth()).isIs_bomb() ? 1 : 0;
+            }
+            if(!isTopEdge && !isRightEdge){
+                // goc phai tren
+                value += squares.get(squareID - myGame.getWidth()).isIs_bomb() ? 1 : 0;
+            }
+            if(!isBottomEdge && !isLeftEdge) {
+                // goc trai duoi
+                value += squares.get(squareID -2 + myGame.getWidth()).isIs_bomb() ? 1 : 0;
+            }
+            if(!isBottomEdge && !isRightEdge) {
+                //goc phai duoi
+                value += squares.get(squareID + myGame.getWidth()).isIs_bomb() ? 1 : 0;
+            }
+            squares.get(squareID -1).setValue(value);
+            //if the vlue is not 0, return, else cal nearby squares value
+            if(value != 0){
+                return;
+            }
+            if(!isLeftEdge){
+                calSquareValue(squareID -1,color);
+            }
+            if(!isRightEdge){
+                calSquareValue(squareID +1,color);
+            }
+            if(!isTopEdge) {
+                calSquareValue(squareID - myGame.getWidth(),color);
+            }
+            if(!isBottomEdge) {
+                calSquareValue(squareID + myGame.getWidth(),color);
+            }
+            if(!isTopEdge && !isLeftEdge){
+                // goc trai tren
+                calSquareValue(squareID -1 - myGame.getWidth(),color);
+            }
+            if(!isTopEdge && !isRightEdge){
+                // goc phai tren
+                calSquareValue(squareID - myGame.getWidth() + 1,color);
+            }
+            if(!isBottomEdge && !isLeftEdge) {
+                // goc trai duoi
+                calSquareValue(squareID -1 + myGame.getWidth(),color);
+            }
+            if(!isBottomEdge && !isRightEdge) {
+                //goc phai duoi
+                calSquareValue(squareID + myGame.getWidth() + 1,color);
+            }
+        }
+        
+        private void updateGameStat() {
+            List<GamePlayer> players = myGame.getPlayers();
+            int winScore = (int)(myGame.getBomb_number()/2);
+            // check game over
+            for(GamePlayer p : players)
+                if(p.getScore() > winScore){
+                    p.setIs_winner(true);
+                    p.setPlus_score(1);
+                    myGame.setTime_end(new Time(new java.util.Date().getTime()));
+                    gameOver = true;
+                }
+            if(gameOver) {
+                for(GamePlayer p : players)
+                    if(!p.isIs_winner()){
+                        p.setPlus_score(-1);
+                        break;
+                    }
+            }
+            //send Stat to players 
+            for(ServerProcessing socket : myProcess){
+                if( socket.getStat()!=null && hasGamePlayer(socket.getStat().getID())){
+                    if(gameOver)
+                        socket.getStat().setFree(true);
+                    socket.sendData(new ObjectWrapper(ObjectWrapper.SERVER_UPDATE_GAME_STAT, myGame));
+                }
+            }
+            if(gameOver){
+                timer.cancel();
+                timer.purge();
+                //save game
+                new GameDAO().saveGame(myGame);
+                // remove this from list game process
+                listGameProcess.remove(this);
+                // cap nhat bxh
+                for(ServerProcessing socket : myProcess){
+                    List<PlayerRank> ranks = null;
+                    if(socket.getStat() != null){
+                        ranks = new PlayerRankDAO().getPlayerRanks(socket.getStat().getID());
+                        List<PlayerRank> friends = new PlayerRankDAO().getFriendRanks(socket.getStat().getID());
+                        socket.sendData(new ObjectWrapper(ObjectWrapper.REPLY_GET_LIST_FRIEND, friends));
+                    }
+                    else
+                        ranks = new PlayerRankDAO().getPlayerRanks();
+                    socket.sendData(new ObjectWrapper(ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK, ranks));
+                }
+                return;
+            }
+            //set new timer
+            timer = new Timer();
+            timer.schedule(new AutomaticClick(), 10000);
+        }
+        
+        private void clickARandomSquare(){
+            //generate a random square position
+            int id = (int)(Math.random()*(myGame.getSquares().size())) + 1;
+            if(myGame.getSquares().get(id-1).isIs_clicked())
+                for(Square sq : myGame.getSquares())
+                    if(!sq.isIs_clicked()){
+                        id = sq.getID();
+                        break;
+                    }
+            onSquareClicked(id);
+        }
+        
+        public boolean hasGamePlayer(int playerID){
+            for(GamePlayer p : myGame.getPlayers())
+                if(p.getPlayer().getID() == playerID)
+                    return true;
+            return false;
+        }
+        
+        class AutomaticClick  extends TimerTask {
+            @Override
+            public void run() {
+                clickARandomSquare();
             }
         }
     }

@@ -1,15 +1,25 @@
 package tcp.client.view;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Container;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.List;
+import java.util.TimerTask;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import java.util.Timer;
+import javax.imageio.ImageIO;
+import javax.swing.ImageIcon;
 import model.Game;
 import model.GamePlayer;
 import model.ObjectWrapper;
@@ -22,16 +32,23 @@ import tcp.client.control.ClientCtr;
 
 
 public class GameFrm extends JFrame implements ActionListener{
-          
-    JButton reset = new JButton("Reset");       //Reset Button as a side.
-    JButton giveUp = new JButton("Give Up");    //Similarly, give up button.  
-    JPanel ButtonPanel = new JPanel();          
-    int[][] counts;                             //integer array to store counts of each cell. Used as a back-end for comparisons.
-    JButton[][] buttons;                        //Buttons array to use as a front end for the game.
-    int size=10,diff;                              
-    final int MINE = 10;        
+    private JButton btnGiveup;   
+    private int[][] counts;
+    private JButton[] buttons;
+    private JLabel lblMineNumb;
+    private JLabel lblMyscore;
+    private JLabel lblOpscore;
+    private JLabel lblMytime;
+    private JLabel lblNowplay;
+    private JLabel lblOptime;
     private ClientCtr mySocket; 
-    Game game;
+    private Game game;
+    private boolean lockGrid;
+    private boolean buttonRendered;
+    private int time;
+    private Timer timer;
+    private GamePlayer you;
+    private GamePlayer opponent;
     /**
     @param size determines the size of the board
     */
@@ -39,39 +56,30 @@ public class GameFrm extends JFrame implements ActionListener{
     public GameFrm(ClientCtr socket){
         super("Minesweeper Game");
         mySocket = socket;      
-
-        counts = new int[size][size];
-        buttons = new JButton[size][size];  
-             
-        this.setLayout(new BorderLayout());           
-        this.add(ButtonPanel,BorderLayout.SOUTH);     
-        reset.addActionListener(this);                 
-        giveUp.addActionListener(this);                
-
-
-       Container grid = new Container();  
-        grid.setLayout(new GridLayout(size,size));    
-
-        for(int a = 0; a < buttons.length; a++)
-        {
-            for(int b = 0; b < buttons[0].length; b++)
-            {
-                buttons[a][b] = new JButton();            
-                buttons[a][b].addActionListener(this);     
-                grid.add(buttons[a][b]);                  
-            }
-        }
-        // above initializes each button in the minesweeper board and gives it functionality. 
-
-        ButtonPanel.add(reset);                        
-        ButtonPanel.add(giveUp);       // adding buttons to the panel.
-
-        this.add(grid,BorderLayout.CENTER);           //calling function to start the game by filling mines.
-
-        this.setLocationRelativeTo(null);          //this stuff
+        lockGrid = true;
+        buttonRendered = false;
+        this.setLayout(new BorderLayout());  
+        JPanel ButtonPanel = new JPanel();
+        this.add(ButtonPanel,BorderLayout.SOUTH);      
+        btnGiveup = new JButton("Give up");
+        btnGiveup.addActionListener(this);
+        ButtonPanel.add(btnGiveup);
         
+        JPanel pnlStatus = new JPanel();
+        lblMineNumb = new JLabel("Mines: --");
+        lblMyscore = new JLabel("Current score: 0");
+        lblOpscore = new JLabel("Opponent score: 0");
+        lblMytime = new JLabel("Time");
+        lblNowplay = new JLabel("Next: ");
+        pnlStatus.setLayout(new FlowLayout(FlowLayout.LEFT,10,20));
+        pnlStatus.add(lblMineNumb);
+        pnlStatus.add(lblMyscore);
+        pnlStatus.add(lblOpscore);
+        pnlStatus.add(lblNowplay);
+        pnlStatus.add(lblMytime);
+        this.add(pnlStatus,BorderLayout.NORTH); 
         
-        this.setSize(300,300);                   
+        this.setResizable(true);                   
         this.setLocation(200,10);   
         this.setVisible(true);
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -80,51 +88,165 @@ public class GameFrm extends JFrame implements ActionListener{
     }
     
     public void receivedDataProcessing(ObjectWrapper data) {
-        // set game
         if(data.getData() instanceof Game){
-            game = (Game)data.getData();
             this.setVisible(true);
-        }
-        
-        //update frm
-        
-        //inform winner
-        List<GamePlayer> players = game.getPlayers();
-        GamePlayer you = (players.get(0).getPlayer().getID() == mySocket.getUser().getID() ? players.get(0) : players.get(1));
-        if(game.getTime_end()!= null){
-            String message = "Game over ! You "+ (you.isIs_winner() ? "win":"lose .");
-            JOptionPane.showMessageDialog(this, message);
+            game = (Game)data.getData();
+            List<GamePlayer> players = game.getPlayers();
+            lockGrid = false;
+            // you 
+            for(GamePlayer p : players) 
+                if(p.getPlayer().getID() == mySocket.getUser().getID())
+                    you = p;
+                else
+                    opponent = p;
             
-            ObjectWrapper existed = null;
-            for(ObjectWrapper func: mySocket.getActiveFunction())
-                if(func.getData() == this ){
-                    ((GameFrm)func.getData()).dispose();
-                    existed = func;
+            //check turn
+            for(GamePlayer p : players)
+                if(!you.isIs_next())
+                    lockGrid = true;
+            // render frm
+            renderView();
+            //inform winner
+            if(game.getTime_end()!= null){ //Game over
+                //render time
+                if(timer != null){
+                    timer.cancel();
+                    timer.purge();
                 }
-            if(existed != null)
-                mySocket.getActiveFunction().remove(existed);
+                String message = "Game over ! You "+ (you.isIs_winner() ? "win":"lose .");
+                JOptionPane.showMessageDialog(this, message);
+                // remove from active func
+                ObjectWrapper existed = null;
+                for(ObjectWrapper func: mySocket.getActiveFunction())
+                    if(func.getData() == this ){
+                        ((GameFrm)func.getData()).dispose();
+                        existed = func;
+                    }
+                if(existed != null)
+                    mySocket.getActiveFunction().remove(existed);
+            }
         }
+    }
+    
+    private void renderView(){
+        if(!buttonRendered){
+            this.setSize(45*game.getWidth(), 45*game.getWidth()+50);
+            int sqNumber = game.getWidth()*game.getWidth();
+            buttons = new JButton[sqNumber];
+            Container grid = new Container();
+            grid.setLayout(new GridLayout(game.getWidth(),game.getWidth()));
+            for(int i=0; i<sqNumber; i++){
+                buttons[i] = new JButton();
+                buttons[i].addActionListener(this);
+                buttons[i].setBackground(Color.GRAY);
+                grid.add(buttons[i]);
+            }
+            this.add(grid,BorderLayout.CENTER);
+            lblMineNumb.setText("Mines: "+game.getBomb_number());
+            buttonRendered = true;
+        }
+        // render score
+        for(GamePlayer p : game.getPlayers())
+            if(p == you){
+                lblMyscore.setText("You: "+p.getScore());
+                lblMyscore.setForeground(Color.decode(p.getColor()));
+            }else{
+                lblOpscore.setText(p.getPlayer().getUsername()+": "+p.getScore());
+                lblOpscore.setForeground(Color.decode(p.getColor()));
+            }
+        //render next play, time
+        if(you.isIs_next()){
+            lblNowplay.setText("Next: you");
+            lblNowplay.setForeground(Color.decode(you.getColor()));
+            lblMytime.setForeground(Color.decode(you.getColor()));
+        }else{
+            lblNowplay.setText("Next: "+opponent.getPlayer().getUsername());
+            lblNowplay.setForeground(Color.decode(opponent.getColor()));
+            lblMytime.setForeground(Color.decode(opponent.getColor()));
+        }
+        //render time
+        if(timer != null){
+            timer.cancel();
+            timer.purge();
+        }
+        lblMytime.setText(" (10)");
+        time = 10;
+        timer = new Timer();
+        timer.schedule(new CountTime(), 1000);
+        // render square
+        List<Square> squares = game.getSquares();
+        for(Square sq : squares) {
+            JButton btn = buttons[sq.getID()-1];
+            if(sq.isIs_clicked()){
+                btn.setBackground(Color.decode(sq.getColor()));
+                btn.setEnabled(false);
+                if(sq.isIs_bomb()){
+                    //btn.setIcon(defaultIcon);
+                    //btn.setText("B");
+                    try{
+                        Image icon = ImageIO.read(new FileInputStream(new File("rsc/bomb4.ico")));
+                        btn.setIcon(new ImageIcon(icon));
+                    }catch(Exception e){
+                        btn.setText("B");
+                        e.printStackTrace();
+                    }
+                }else{
+                    btn.setText(sq.getValue()+"");
+                }
+            }
+        }
+        //do smt
     }
 
     @Override
     public void actionPerformed(ActionEvent ae) {
-        for(int x = 0; x < size; x++) {
-            for( int y = 0; y < size; y++) {
-                if(ae.getSource() == buttons[x][y]){
-                    Square sq = new Square();
-                    sq.setGame(game);
-                    mySocket.sendData(new ObjectWrapper(ObjectWrapper.MAKE_A_MOVE, sq));
+        if(lockGrid) return;
+        for(int i=0; i<buttons.length; i++){
+            if(ae.getSource() == buttons[i]){
+                Square sq = game.getSquares().get(i);
+                if(sq.isIs_clicked())
+                    return;
+                sq.setGame(game);
+                mySocket.sendData(new ObjectWrapper(ObjectWrapper.MAKE_A_MOVE, sq));
+                if(timer != null){
+                    timer.cancel();
+                    timer.purge();
                 }
+                lblMytime.setText(" (10)");
+                time = 10;
+                timer = new Timer();
+                timer.schedule(new CountTime(), 1000);
+                lockGrid = true;
+                break;
             }
+        }
+    }
+    
+    public void updateTime(){
+        time --;
+        if(time == 0)
+            time = 10;
+        lblMytime.setText(" ("+time+")");
+        // reset timer
+        timer.cancel();
+        timer.purge();
+        timer = new Timer();
+        timer.schedule(new CountTime(), 1000);
+    }
+    public static void main(String[] args) {
+        new GameFrm(null);
+    }
+    
+    class CountTime extends TimerTask{
+
+        public CountTime() {
+        }
+        
+        @Override
+        public void run() {
+            updateTime();
         }
         
     }
-    /**
-     * Function to check whether user has lost the game ( i.e clicked a mine).
-     * @param m indicated whether the function has been called when user clicks a mine( m=1)
-     * or when he clicks the give up button.(m = any other integer).
-     * Shows a dialog box which tells the user that they have lost the game.
-     */
-    
 
 }

@@ -37,6 +37,8 @@ public class Square implements Serializable {
     @Column(name = "is_clicked")
     private boolean is_clicked;
     
+    private String color;
+    
     @ManyToOne
     @JoinColumn(name="gameid", nullable=false)
     private Game game;
@@ -79,6 +81,14 @@ public class Square implements Serializable {
 
     public void setGame(Game game) {
         this.game = game;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
     
 }
