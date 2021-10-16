@@ -28,6 +28,7 @@ import model.Square;
 import model.TournamentPlayer;
 import model.User;
 import tcp.server.view.ServerMainFrm;
+import java.util.concurrent.atomic.AtomicBoolean;
  
 public class ServerCtr {
     private ServerMainFrm view;
@@ -413,7 +414,7 @@ public class ServerCtr {
         private Game myGame;
         private Timer timer;
         private boolean gameOver = false;
-        private boolean processingStat = false;
+        private AtomicBoolean  processingStat = new AtomicBoolean(false);
         public GameProcess(Game game){
             super();
             myGame = game;
@@ -446,8 +447,8 @@ public class ServerCtr {
         }
         
         public void onSquareClicked(int squareID) {
-            if(processingStat) return;
-            processingStat = true;
+            boolean isNotProcessing = processingStat.compareAndSet(false, true);
+            if(!isNotProcessing) return;
             // cancel timer
             if(timer != null) {
                 timer.cancel();
@@ -458,7 +459,7 @@ public class ServerCtr {
             GamePlayer nextPlayer = null;
             // if square is cliked , return
             if(squares.get(squareID-1).isIs_clicked()){
-                processingStat = false;
+                processingStat.set(false);
                 return;
             }
             // get the player clicking
@@ -483,6 +484,7 @@ public class ServerCtr {
             }
             // dong bo hoa
             updateGameStat();
+            processingStat.set(false);
         }
         
         private void calSquareValue(int squareID, String color){
@@ -612,13 +614,11 @@ public class ServerCtr {
                         ranks = new PlayerRankDAO().getPlayerRanks();
                     socket.sendData(new ObjectWrapper(ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK, ranks));
                 }
-                processingStat = false;
                 return;
             }
             //set new timer
             timer = new Timer();
             timer.schedule(new AutomaticClick(), 10000);
-            processingStat = false;
         }
         
         private void clickARandomSquare(){
