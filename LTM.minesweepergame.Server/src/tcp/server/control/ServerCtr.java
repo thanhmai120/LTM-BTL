@@ -415,11 +415,13 @@ public class ServerCtr {
         private Timer timer;
         private boolean gameOver = false;
         private AtomicBoolean  processingStat = new AtomicBoolean(false);
+        private int sqLeft;
         public GameProcess(Game game){
             super();
             myGame = game;
             //generate game property
             int sqNumb = myGame.getWidth()*myGame.getWidth();
+            sqLeft = sqNumb;
             ArrayList<Square> squares = new ArrayList<Square>();
             for(int i=0; i<sqNumb; i++){
                 Square sq = new Square();
@@ -473,6 +475,7 @@ public class ServerCtr {
             if(squares.get(squareID-1).isIs_bomb()){
                 squares.get(squareID-1).setIs_clicked(true);
                 squares.get(squareID -1).setColor(nextPlayer.getColor());
+                sqLeft -= 1;
                 // increase the player score
                 nextPlayer.setScore(nextPlayer.getScore() +1);
             } else {            
@@ -497,6 +500,7 @@ public class ServerCtr {
             int value = 0;
             // set clicked
             squares.get(squareID -1).setIs_clicked(true);
+            sqLeft -= 1;
             //find out the position of the square
             boolean isLeftEdge = (squareID % myGame.getWidth() == 1);
             boolean isRightEdge = (squareID % myGame.getWidth() == 0);
@@ -614,6 +618,12 @@ public class ServerCtr {
                         ranks = new PlayerRankDAO().getPlayerRanks();
                     socket.sendData(new ObjectWrapper(ObjectWrapper.REPLY_GET_LIST_PLAYER_RANK, ranks));
                 }
+                //cap nhat online
+                for(ServerProcessing socket : myProcess){
+                    if(socket.getStat() != null){
+                        publicInformUserIn(socket.getStat().getID());
+                    }
+                }
                 return;
             }
             //set new timer
@@ -624,12 +634,19 @@ public class ServerCtr {
         private void clickARandomSquare(){
             //generate a random square position
             int id = (int)(Math.random()*(myGame.getSquares().size())) + 1;
-            if(myGame.getSquares().get(id-1).isIs_clicked())
-                for(Square sq : myGame.getSquares())
+            if(myGame.getSquares().get(id-1).isIs_clicked()) {
+                int ord = id % sqLeft;
+                int pos = 0;
+                for(Square sq : myGame.getSquares()) {
                     if(!sq.isIs_clicked()){
-                        id = sq.getID();
-                        break;
+                        if(pos == ord) {
+                            id = sq.getID();
+                            break;
+                        }
+                        pos += 1;
                     }
+                }
+            }
             onSquareClicked(id);
         }
         
