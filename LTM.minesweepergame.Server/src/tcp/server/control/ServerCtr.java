@@ -253,7 +253,7 @@ public class ServerCtr {
                                 }
                                 boolean playerOnline = false;
                                 for(ServerProcessing player : myProcess){
-                                    if(player.stat.getID() == toPlayerID ) {
+                                    if(player.stat != null && player.stat.getID() == toPlayerID ) {
                                         playerOnline = true;
                                         if(player.stat.isFree()){
                                             player.sendData(
@@ -286,8 +286,8 @@ public class ServerCtr {
                                             int fromPlayerID = c.getFromPlayer().getID();
                                             boolean playerOnline = false;
                                             for(ServerProcessing player : myProcess){
-                                                playerOnline = true;
-                                                if(player.stat.getID() == fromPlayerID){
+                                                if(player.stat != null && player.stat.getID() == fromPlayerID){
+                                                    playerOnline = true;
                                                     if(player.stat.isFree() && stat.isFree()){
                                                         player.stat.setFree(false);
                                                         stat.setFree(false);
@@ -344,7 +344,7 @@ public class ServerCtr {
                                     if(challenge.getID() == c.getID() && !challenge.isExpired()){
                                         int fromPlayerID = c.getFromPlayer().getID();
                                         for(ServerProcessing player : myProcess)
-                                            if(player.stat.getID() == fromPlayerID){
+                                            if(player.stat != null && player.stat.getID() == fromPlayerID){
                                                 // send notification
                                                 player.sendData(new ObjectWrapper(ObjectWrapper.REPLY_CHALLENGE_PLAYER
                                                                 ,(challenge.isAccepted() ? "accepted" : "refused")));
